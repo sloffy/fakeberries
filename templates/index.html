@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Каталог — FakeBerries{% endblock %}
+
+{% block content %}
+<section class="fb-section">
+    <div class="fb-section__head">
+        <div>
+            <p class="fb-eyebrow">Главная страница · максимум 9 товаров</p>
+            <h1 class="fb-title">Каталог FakeBerries</h1>
+        </div>
+    </div>
+
+    {% if products %}
+        <div class="fb-grid">
+            {% for product in products %}
+                <article class="fb-card">
+                    <div class="fb-card__cover">
+                        <img src="{{ url_for('media_file', filename=product.image_filename) }}" alt="{{ product.name }}">
+                    </div>
+                    <div class="fb-card__body">
+                        <h2 class="fb-card__title">{{ product.name }}</h2>
+                        <p class="fb-card__price">{{ '%.2f'|format(product.price) }} ₽</p>
+                    </div>
+                    <div class="fb-card__actions">
+                        <form action="{{ url_for('move_to_basket', product_id=product.id) }}" method="post">
+                            <input type="hidden" name="redirect" value="{{ request.full_path }}">
+                            <button type="submit" class="fb-btn fb-btn--primary">В корзину</button>
+                        </form>
+                        <form action="{{ url_for('delete_product', product_id=product.id) }}" method="post" onsubmit="return confirm('Удалить товар безвозвратно?');">
+                            <input type="hidden" name="redirect" value="{{ request.full_path }}">
+                            <button type="submit" class="fb-btn fb-btn--danger">Удалить</button>
+                        </form>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="fb-empty">
+            <p>Каталог пуст. Добавьте первые товары с помощью кнопки «Добавить товар».</p>
+        </div>
+    {% endif %}
+
+    {% if pagination.pages > 1 %}
+        <div class="fb-pagination">
+            {% if pagination.has_prev %}
+                <a class="fb-page-link" href="{{ url_for('index', page=pagination.prev_num) }}">← Предыдущая</a>
+            {% else %}
+                <span class="fb-page-link fb-page-link--disabled">← Предыдущая</span>
+            {% endif %}
+            <span class="fb-page-count">Страница {{ pagination.page }} из {{ pagination.pages }}</span>
+            {% if pagination.has_next %}
+                <a class="fb-page-link" href="{{ url_for('index', page=pagination.next_num) }}">Следующая →</a>
+            {% else %}
+                <span class="fb-page-link fb-page-link--disabled">Следующая →</span>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div class="fb-floating-add">
+        <a href="{{ url_for('add_product') }}" class="fb-btn fb-btn--primary">Добавить товар</a>
+    </div>
+</section>
+{% endblock %}

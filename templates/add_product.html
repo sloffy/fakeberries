@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить товар — FakeBerries{% endblock %}
+
+{% block content %}
+<section class="fb-section fb-section--narrow">
+    <div class="fb-section__head">
+        <div>
+            <p class="fb-eyebrow">Третья страница · создание карточки</p>
+            <h1 class="fb-title">Добавить товар</h1>
+        </div>
+    </div>
+
+    <form class="fb-form" action="{{ url_for('add_product') }}" method="post" enctype="multipart/form-data">
+        <label class="fb-field">
+            <span>Название товара</span>
+            <input type="text" name="name" required value="{{ form_data.name if form_data else '' }}">
+        </label>
+
+        <label class="fb-field">
+            <span>Цена, ₽</span>
+            <input type="text" name="price" required inputmode="decimal" value="{{ form_data.price if form_data else '' }}">
+        </label>
+
+        <label class="fb-field fb-field--file">
+            <span>Изображение товара</span>
+            <input type="file" name="image" accept="image/*" required>
+            <small>Форматы: JPG, PNG, GIF, WEBP. Размер до 8 МБ.</small>
+        </label>
+
+        <div class="fb-form__actions">
+            <a class="fb-btn fb-btn--ghost" href="{{ url_for('index') }}">Отмена</a>
+            <button type="submit" class="fb-btn fb-btn--primary">Сохранить</button>
+        </div>
+    </form>
+</section>
+{% endblock %}
+

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина — FakeBerries{% endblock %}
+
+{% block content %}
+<section class="fb-section">
+    <div class="fb-section__head">
+        <div>
+            <p class="fb-eyebrow">Вторая страница · все выбранные товары</p>
+            <h1 class="fb-title">Корзина</h1>
+        </div>
+    </div>
+
+    {% if products %}
+        <div class="fb-basket">
+            {% for product in products %}
+                <article class="fb-basket__item">
+                    <div class="fb-basket__preview">
+                        <img src="{{ url_for('media_file', filename=product.image_filename) }}" alt="{{ product.name }}">
+                    </div>
+                    <div class="fb-basket__info">
+                        <h2>{{ product.name }}</h2>
+                        <p class="fb-card__price">{{ '%.2f'|format(product.price) }} ₽</p>
+                    </div>
+                    <form action="{{ url_for('return_to_catalog', product_id=product.id) }}" method="post">
+                        <input type="hidden" name="redirect" value="{{ request.full_path }}">
+                        <button type="submit" class="fb-btn fb-btn--ghost">Удалить из корзины</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+
+        <div class="fb-basket__summary">
+            <div>
+                <p class="fb-eyebrow">Итоговая стоимость</p>
+                <p class="fb-total">{{ '%.2f'|format(total) }} ₽</p>
+            </div>
+            <form action="{{ url_for('checkout') }}" method="post" onsubmit="return confirm('Оформить покупку и удалить товары?');">
+                <button type="submit" class="fb-btn fb-btn--primary">Оформить покупку</button>
+            </form>
+        </div>
+    {% else %}
+        <div class="fb-empty">
+            <p>Здесь появятся товары, которые вы отправите с главной страницы.</p>
+            <a class="fb-btn fb-btn--primary" href="{{ url_for('index') }}">Вернуться к каталогу</a>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+

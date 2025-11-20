@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Вход — FakeBerries{% endblock %}
+
+{% block content %}
+<section class="fb-auth">
+    <div class="fb-auth__panel">
+        <h1>Вход на FakeBerries</h1>
+        <p class="fb-eyebrow">Используйте учётную запись admin</p>
+        <form method="post" class="fb-form">
+            <label class="fb-field">
+                <span>Логин</span>
+                <input type="text" name="username" required autofocus>
+            </label>
+            <label class="fb-field">
+                <span>Пароль</span>
+                <input type="password" name="password" required>
+            </label>
+            <label class="fb-checkbox">
+                <input type="checkbox" name="remember">
+                <span>Запомнить меня</span>
+            </label>
+            <button type="submit" class="fb-btn fb-btn--primary w-100">Войти</button>
+        </form>
+    </div>
+</section>
+{% endblock %}
