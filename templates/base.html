@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}FakeBerries{% endblock %}</title>
+    <title>{% block title %}Онлайн-магазин{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body>
     <header class="fb-header">
         <div class="fb-header__brand">
-            <a class="fb-logo" href="{{ url_for('index') }}">FakeBerries</a>
+            <a class="fb-logo" href="{{ url_for('index') }}">Онлайн-магазин</a>
             <span class="fb-tagline">учебный маркетплейс</span>
         </div>
         <nav class="fb-nav">
@@ -29,17 +29,17 @@
         </nav>
     </header>
 
+    <div class="fb-flashes-container"></div>
+
     <main class="fb-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="fb-flashes">
-                    {% for category, message in messages %}
-                        <div class="fb-flash fb-flash--{{ category }}">
-                            <span>{{ message }}</span>
-                            <button type="button" class="fb-flash__close" data-close-flash>&times;</button>
-                        </div>
-                    {% endfor %}
-                </div>
+                {% for category, message in messages %}
+                    <div class="fb-flash fb-flash--{{ category }}" data-flash-message>
+                        <span>{{ message }}</span>
+                        <button type="button" class="fb-flash__close" data-close-flash>&times;</button>
+                    </div>
+                {% endfor %}
             {% endif %}
         {% endwith %}
 
@@ -48,7 +48,7 @@
 
     <footer class="fb-footer">
         <div class="fb-footer__column">
-            <p class="fb-footer__title">FakeBerries</p>
+            <p class="fb-footer__title">Онлайн-магазин</p>
             <p class="fb-footer__text">Сборник товаров</p>
         </div>
         <div class="fb-footer__column">

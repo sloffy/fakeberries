@@ -1,14 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Каталог — FakeBerries{% endblock %}
+{% block title %}Каталог{% endblock %}
 
 {% block content %}
 <section class="fb-section">
     <div class="fb-section__head">
         <div>
             <p class="fb-eyebrow">Главная страница · максимум 9 товаров</p>
-            <h1 class="fb-title">Каталог FakeBerries</h1>
+            <h1 class="fb-title">Каталог онлайн-магазина</h1>
         </div>
+        <a href="{{ url_for('add_product') }}" class="fb-btn fb-btn--primary">Добавить товар</a>
     </div>
 
     {% if products %}
@@ -21,9 +22,16 @@
                     <div class="fb-card__body">
                         <h2 class="fb-card__title">{{ product.name }}</h2>
                         <p class="fb-card__price">{{ '%.2f'|format(product.price) }} ₽</p>
+                        <div class="fb-card__quantity-container" data-product-id="{{ product.id }}">
+                            {% if basket_quantities.get(product.id, 0) > 0 %}
+                                <p class="fb-card__quantity">В корзине: <span class="quantity-value">{{ basket_quantities.get(product.id, 0) }}</span> шт.</p>
+                            {% else %}
+                                <p class="fb-card__quantity" style="display: none;">В корзине: <span class="quantity-value">0</span> шт.</p>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="fb-card__actions">
-                        <form action="{{ url_for('move_to_basket', product_id=product.id) }}" method="post">
+                        <form class="add-to-basket-form" action="{{ url_for('move_to_basket', product_id=product.id) }}" method="post" data-product-id="{{ product.id }}">
                             <input type="hidden" name="redirect" value="{{ request.full_path }}">
                             <button type="submit" class="fb-btn fb-btn--primary">В корзину</button>
                         </form>
@@ -56,9 +64,5 @@
             {% endif %}
         </div>
     {% endif %}
-
-    <div class="fb-floating-add">
-        <a href="{{ url_for('add_product') }}" class="fb-btn fb-btn--primary">Добавить товар</a>
-    </div>
 </section>
 {% endblock %}

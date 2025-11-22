@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Корзина — FakeBerries{% endblock %}
+{% block title %}Корзина{% endblock %}
 
 {% block content %}
 <section class="fb-section">
@@ -11,18 +11,19 @@
         </div>
     </div>
 
-    {% if products %}
+    {% if basket_items %}
         <div class="fb-basket">
-            {% for product in products %}
+            {% for item in basket_items %}
                 <article class="fb-basket__item">
                     <div class="fb-basket__preview">
-                        <img src="{{ url_for('media_file', filename=product.image_filename) }}" alt="{{ product.name }}">
+                        <img src="{{ url_for('media_file', filename=item.product.image_filename) }}" alt="{{ item.product.name }}">
                     </div>
                     <div class="fb-basket__info">
-                        <h2>{{ product.name }}</h2>
-                        <p class="fb-card__price">{{ '%.2f'|format(product.price) }} ₽</p>
+                        <h2>{{ item.product.name }}</h2>
+                        <p class="fb-card__price">{{ '%.2f'|format(item.product.price) }} ₽ × {{ item.quantity }} шт. = {{ '%.2f'|format(item.get_total_price()) }} ₽</p>
+                        <p class="fb-basket__quantity">Количество: {{ item.quantity }} шт.</p>
                     </div>
-                    <form action="{{ url_for('return_to_catalog', product_id=product.id) }}" method="post">
+                    <form action="{{ url_for('remove_from_basket', basket_item_id=item.id) }}" method="post">
                         <input type="hidden" name="redirect" value="{{ request.full_path }}">
                         <button type="submit" class="fb-btn fb-btn--ghost">Удалить из корзины</button>
                     </form>

@@ -8,6 +8,7 @@ from flask import (
     current_app,
     send_from_directory,
     abort,
+    jsonify,
 )
 from flask_login import (
     LoginManager,
@@ -23,7 +24,7 @@ import os
 from datetime import datetime
 import bleach
 
-from models import db, User, Product, create_default_admin
+from models import db, User, Product, BasketItem, create_default_admin
 
 
 app = Flask(__name__)
@@ -98,24 +99,31 @@ def get_redirect_target(default_endpoint: str = 'index') -> str:
 def index():
     page = max(1, request.args.get('page', 1, type=int))
     per_page = 9
-    pagination = Product.query.filter_by(status='catalog').order_by(
+    pagination = Product.query.order_by(
         Product.created_at.desc()
     ).paginate(page=page, per_page=per_page, error_out=False)
+
+    # Получаем количество товаров в корзине для каждого товара
+    basket_quantities = {}
+    for product in pagination.items:
+        basket_item = BasketItem.query.filter_by(product_id=product.id).first()
+        basket_quantities[product.id] = basket_item.quantity if basket_item else 0
 
     return render_template(
         'index.html',
         products=pagination.items,
         pagination=pagination,
         current_page=page,
+        basket_quantities=basket_quantities,
     )
 
 
 @app.route('/basket')
 @login_required
 def basket():
-    basket_products = Product.query.filter_by(status='basket').order_by(Product.updated_at.desc()).all()
-    total = sum((product.price_as_decimal() for product in basket_products), start=Decimal('0'))
-    return render_template('basket.html', products=basket_products, total=total)
+    basket_items = BasketItem.query.order_by(BasketItem.updated_at.desc()).all()
+    total = sum((item.get_total_price() for item in basket_items), start=Decimal('0'))
+    return render_template('basket.html', basket_items=basket_items, total=total)
 
 
 @app.route('/product/add', methods=['GET', 'POST'])
@@ -141,11 +149,10 @@ def add_product():
             name=name,
             price=price_value,
             image_filename=filename,
-            status='catalog',
         )
         db.session.add(product)
         db.session.commit()
-        flash('Товар добавлен в каталог FakeBerries!', 'success')
+        flash('Товар добавлен в каталог онлайн-магазина!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_product.html', form_data=None)
@@ -155,28 +162,53 @@ def add_product():
 @login_required
 def move_to_basket(product_id):
     product = Product.query.get_or_404(product_id)
-    if product.status == 'basket':
-        flash('Товар уже в корзине.', 'info')
-        return redirect(get_redirect_target())
-
-    product.status = 'basket'
+    basket_item = BasketItem.query.filter_by(product_id=product_id).first()
+    
+    if basket_item:
+        basket_item.quantity += 1
+        basket_item.updated_at = datetime.utcnow()
+        message = f'Количество "{product.name}" в корзине увеличено.'
+    else:
+        basket_item = BasketItem(product_id=product_id, quantity=1)
+        db.session.add(basket_item)
+        message = f'"{product.name}" добавлен в корзину.'
+    
     db.session.commit()
-    flash(f'"{product.name}" перемещён в корзину.', 'success')
+    
+    # Если это AJAX-запрос, возвращаем JSON
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'message': message,
+            'quantity': basket_item.quantity,
+            'product_id': product_id
+        })
+    
+    # Иначе обычный редирект
+    flash(message, 'success')
     return redirect(get_redirect_target())
 
 
-@app.route('/product/<int:product_id>/return-to-catalog', methods=['POST'])
+@app.route('/basket/item/<int:basket_item_id>/remove', methods=['POST'])
 @login_required
-def return_to_catalog(product_id):
-    product = Product.query.get_or_404(product_id)
-    if product.status == 'catalog':
-        flash('Товар уже находится в каталоге.', 'info')
-        return redirect(get_redirect_target('basket'))
-
-    product.status = 'catalog'
-    db.session.commit()
-    flash(f'"{product.name}" снова доступен на главной странице.', 'success')
-    return redirect(get_redirect_target('basket'))
+def remove_from_basket(basket_item_id):
+    basket_item = BasketItem.query.get_or_404(basket_item_id)
+    product_name = basket_item.product.name
+    
+    if basket_item.quantity > 1:
+        basket_item.quantity -= 1
+        basket_item.updated_at = datetime.utcnow()
+        db.session.commit()
+        flash(f'Количество "{product_name}" в корзине уменьшено.', 'success')
+    else:
+        db.session.delete(basket_item)
+        db.session.commit()
+        flash(f'"{product_name}" удалён из корзины.', 'success')
+    
+    redirect_target = request.form.get('redirect') or request.args.get('next')
+    if redirect_target and redirect_target.startswith('/'):
+        return redirect(redirect_target.rstrip('?'))
+    return redirect(url_for('basket'))
 
 
 @app.route('/product/<int:product_id>/delete', methods=['POST'])
@@ -193,14 +225,13 @@ def delete_product(product_id):
 @app.route('/basket/checkout', methods=['POST'])
 @login_required
 def checkout():
-    basket_products = Product.query.filter_by(status='basket').all()
-    if not basket_products:
+    basket_items = BasketItem.query.all()
+    if not basket_items:
         flash('Корзина уже пустая.', 'info')
         return redirect(url_for('basket'))
 
-    for product in basket_products:
-        product.delete_image()
-        db.session.delete(product)
+    # Удаляем только записи корзины, товары остаются в каталоге
+    BasketItem.query.delete()
     db.session.commit()
     flash('Покупка оформлена. Корзина очищена.', 'success')
     return redirect(url_for('basket'))
@@ -215,14 +246,14 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
-
+        
         if user and check_password_hash(user.password_hash, password):
             login_user(user, remember=bool(request.form.get('remember')))
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
 
         flash('Неверные учётные данные.', 'error')
-
+    
     return render_template('auth/login.html')
 
 
@@ -241,8 +272,53 @@ def media_file(filename):
     return send_from_directory(upload_dir, filename)
 
 
+def migrate_database():
+    """Удаляет устаревшую колонку status из таблицы products"""
+    from sqlalchemy import text
+    
+    try:
+        # Проверяем, существует ли колонка status
+        result = db.session.execute(text(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='products'"
+        )).fetchone()
+        
+        if result and 'status' in result[0]:
+            # SQLite не поддерживает DROP COLUMN напрямую, нужно пересоздать таблицу
+            db.session.execute(text("""
+                CREATE TABLE products_new (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    name VARCHAR(150) NOT NULL,
+                    price NUMERIC(10, 2) NOT NULL,
+                    image_filename VARCHAR(255) NOT NULL,
+                    created_at DATETIME NOT NULL,
+                    updated_at DATETIME NOT NULL
+                )
+            """))
+            
+            db.session.execute(text("""
+                INSERT INTO products_new (id, name, price, image_filename, created_at, updated_at)
+                SELECT id, name, price, image_filename, created_at, updated_at
+                FROM products
+            """))
+            
+            db.session.execute(text("DROP TABLE products"))
+            db.session.execute(text("ALTER TABLE products_new RENAME TO products"))
+            
+            # Пересоздаём индексы, если они были
+            db.session.execute(text("""
+                CREATE INDEX IF NOT EXISTS ix_products_created_at ON products(created_at)
+            """))
+            
+            db.session.commit()
+            print("Миграция базы данных выполнена: колонка status удалена")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Ошибка при миграции: {e}")
+    
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        migrate_database()
         create_default_admin()
     app.run(debug=True)

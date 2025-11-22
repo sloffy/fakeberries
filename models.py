@@ -31,11 +31,13 @@ class Product(db.Model):
     name = db.Column(db.String(150), nullable=False)
     price = db.Column(db.Numeric(10, 2), nullable=False)
     image_filename = db.Column(db.String(255), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='catalog')  # catalog | basket
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(
         db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+    # Связь с корзиной
+    basket_items = db.relationship('BasketItem', backref='product', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return f'<Product {self.name}>'
@@ -56,12 +58,37 @@ class Product(db.Model):
         if os.path.exists(file_path):
             os.remove(file_path)
 
+    def get_basket_quantity(self) -> int:
+        """Возвращает количество товара в корзине"""
+        if self.basket_items:
+            return self.basket_items[0].quantity
+        return 0
+
+
+class BasketItem(db.Model):
+    __tablename__ = 'basket_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id', ondelete='CASCADE'), nullable=False, unique=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    def __repr__(self):
+        return f'<BasketItem product_id={self.product_id} quantity={self.quantity}>'
+
+    def get_total_price(self) -> Decimal:
+        """Возвращает общую стоимость товара (цена * количество)"""
+        return Decimal(self.product.price or 0) * self.quantity
+
 
 def create_default_admin() -> None:
     """Создаёт единственного пользователя admin, если он отсутствует."""
     admin = User.query.filter_by(username='admin').first()
     if not admin:
-        admin = User(username='admin', display_name='Администратор FakeBerries')
+        admin = User(username='admin', display_name='Администратор Онлайн-магазина')
         admin.set_password('admin123')
         db.session.add(admin)
         db.session.commit()

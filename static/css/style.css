@@ -182,6 +182,13 @@ img {
     font-size: 1.1rem;
 }
 
+.fb-card__quantity {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: var(--fb-green);
+    font-weight: 500;
+}
+
 .fb-card__actions {
     display: flex;
     gap: 0.75rem;
@@ -288,6 +295,13 @@ img {
     margin: 0 0 0.35rem;
 }
 
+.fb-basket__quantity {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+    color: var(--fb-green);
+    font-weight: 500;
+}
+
 .fb-basket__summary {
     margin-top: 2rem;
     border-top: 1px solid var(--fb-border);
@@ -364,11 +378,17 @@ img {
     margin-top: 0;
 }
 
-.fb-flashes {
+.fb-flashes-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    padding: 1rem 4vw;
+    pointer-events: none;
 }
 
 .fb-flash {
@@ -378,6 +398,33 @@ img {
     justify-content: space-between;
     align-items: center;
     font-weight: 500;
+    pointer-events: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    margin: 0 auto;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
 }
 
 .fb-flash--success {
@@ -395,11 +442,22 @@ img {
     color: var(--fb-primary);
 }
 
-.fb-flash__close {
+.fb-flash__close,
+.fb-flash [data-close-flash] {
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     cursor: pointer;
+    padding: 0;
+    margin-left: 1rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.fb-flash__close:hover,
+.fb-flash [data-close-flash]:hover {
+    opacity: 1;
 }
 
 .fb-footer {
